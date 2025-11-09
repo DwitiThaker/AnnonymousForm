@@ -56,7 +56,12 @@ def create_access_code(batch_data: AccessCodeBatchCreate):
         )
 
         result = access_code_batch_collection.insert_one(batch_doc.dict())
-        return {"message": "Access codes created successfully", "batch_id": str(result.inserted_id)}
+        return {
+    "message": "Access codes created successfully",
+    "batch_id": str(result.inserted_id),
+    "codes": [{"email": c["email"], "code": c["code"]} for c in codes]
+}
+
             
     except Exception as e:
         logger.error(f"create_access_code: {e}")

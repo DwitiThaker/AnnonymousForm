@@ -7,7 +7,7 @@ import logging
 
 from authentication import *
 from MongoDB.schemas import FormCreate
-from configurations import form_collection
+from configurations import form_collection, access_code_batch_collection
 from middleware import  admin_required
 
 form_route = APIRouter()
@@ -87,6 +87,65 @@ def publish_form(form_id: str):
         "message": "Form published successfully",
         "form_id": form_id,
     }
+
+
+
+@form_route.post("/unpublish_form")
+def unpublish_form(form_id: str, current_admin: Dict[str, Any] = Depends(admin_required)):
+    try:
+        from bson import ObjectId
+
+        # ✅ Validate BSON ObjectId format
+        if not ObjectId.is_valid(form_id):
+            raise HTTPException(status_code=400, detail="Invalid form ID")
+
+        form_object_id = ObjectId(form_id)
+
+        # ✅ Check if form exists
+        form = form_collection.find_one({"_id": form_object_id})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        # ✅ If form is already unpublished
+        if form.get("status") != "published":
+            return {"message": "Form is not published"}
+
+        # ✅ Update form: revert status
+        update_result = form_collection.update_one(
+            {"_id": form_object_id},
+            {
+                "$set": {
+                    "status": "active",        # back to active/draft mode
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {
+                    "published_at": "",
+                    "form_link": ""
+                }
+            }
+        )
+
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to unpublish form")
+
+        # ✅ Remove form_link from associated code batches
+        access_code_batch_collection.update_many(
+            {"form_id": form_object_id},
+            {
+                "$unset": {"form_link": ""},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+
+        return {
+            "message": "Form unpublished successfully",
+            "form_id": form_id
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
     
 
