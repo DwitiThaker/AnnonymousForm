@@ -3,10 +3,12 @@ import string
 import random
 from fastapi import APIRouter, HTTPException
 import logging
+from bson import ObjectId
 
 from MongoDB.schemas import AccessCodeBatchCreate, AccessCodeSchema
 from MongoDB.models import AccessCode, AccessCodeBatch
-from configurations import access_code_batch_collection
+from configurations import access_code_batch_collection, form_collection
+from Routes.sendCode import send_access_code
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,14 @@ create_access_code_route = APIRouter()
 def create_access_code(batch_data: AccessCodeBatchCreate):
     try: 
         logger.info(f"create_access_code: Code is getting created.. ")
+
+        if not ObjectId.is_valid(batch_data.form_id):
+            raise HTTPException(status_code=400, detail="Invalid form_id format")
+        
+        form_object_id = ObjectId(batch_data.form_id)
+        form = form_collection.find_one({"_id": form_object_id})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
 
         codes=[]
         for email in batch_data.emails:
@@ -30,6 +40,12 @@ def create_access_code(batch_data: AccessCodeBatchCreate):
                 generated_at=datetime.utcnow()
             )
             codes.append(access_code.dict())
+
+            try:
+                send_access_code(generate_code, email)
+                logger.info(f"Access code sent to {email}")
+            except Exception as mail_err:
+                logger.error(f"Failed to send access code email to {email}: {mail_err}")
 
         batch_doc = AccessCodeBatch(
             emails=batch_data.emails,

@@ -46,8 +46,9 @@ class AccessCode(BaseModel):
 
 class AccessCodeBatch(BaseModel):
     emails: List[EmailStr]        # array of all emails uploaded
-    form_id: Optional[str] = None # optional: link to a specific form
+    form_id: str# optional: link to a specific form
     generated_by: str             # admin email or id
+    form_link: Optional[str] = None
     created_at: datetime = datetime.utcnow()
     codes: Optional[List[AccessCode]] = []  # generated codes for each email
 

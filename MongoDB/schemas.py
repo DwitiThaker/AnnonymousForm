@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, EmailStr
 
 class Login(BaseModel):
@@ -45,3 +45,9 @@ class AccessCodeBatchCreate(BaseModel):
     form_id: Optional[str] = None   
     generated_by: str
     created_at: Optional[datetime] = datetime.utcnow()
+
+
+class ResponseCreate(BaseModel):
+    form_id: str              # form to which this response belongs
+    answers: Dict[str, str]   # key-value pairs of question_id: answer
+    submitted_by: str = None  # optional (anonymous if not given)

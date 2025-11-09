@@ -28,10 +28,6 @@ def send_access_code(access_code, recipient_email):
 
     print(f"Access code sent to {recipient_email}")
 
-# Example usage
-if __name__ == "__main__":
-    access_code = "8J5LGL "  
-    send_access_code(access_code, "dwitithaker5@gmail.com")
     
 
 

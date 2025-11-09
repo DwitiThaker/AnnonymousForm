@@ -5,7 +5,6 @@ from Routes import adminRoute, formRoute, accessCode
 
 app = FastAPI()
 
-# ✅ Add this BEFORE defining routes or including routers
 
 
 origins = [
@@ -26,24 +25,14 @@ app.add_middleware(
 def home():
     return {"message": "FastAPI is running successfully"}
 
-@app.post("/insert_dummy")
-def insert_sample():
-    form_col = get_form_collection()
-    form_col.insert_one({"title": "Demo Form", "status": "draft"})
-    return {"message": "Inserted sample data!"}
+
 
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
 
-@app.get("/test-db")
-def test_db():
-    user_col = get_user_collection()
-    test_user = {"name": "Dwiti", "role": "backend engineer"}
-    result = user_col.insert_one(test_user)
-    return {"inserted_id": str(result.inserted_id)}
 
-# ✅ Include routers after middleware
+
 app.include_router(adminRoute.admin_auth_route)
 app.include_router(formRoute.form_route)
 app.include_router(accessCode.create_access_code_route)
