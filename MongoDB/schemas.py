@@ -51,3 +51,8 @@ class ResponseCreate(BaseModel):
     form_id: str              # form to which this response belongs
     answers: Dict[str, str]   # key-value pairs of question_id: answer
     submitted_by: str = None  # optional (anonymous if not given)
+
+class FormUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    fields: Optional[list] = None

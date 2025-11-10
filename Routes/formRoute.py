@@ -6,7 +6,7 @@ import logging
 
 
 from authentication import *
-from MongoDB.schemas import FormCreate
+from MongoDB.schemas import FormCreate, FormUpdate
 from configurations import form_collection, access_code_batch_collection
 from middleware import  admin_required
 
@@ -147,11 +147,9 @@ def unpublish_form(form_id: str, current_admin: Dict[str, Any] = Depends(admin_r
 
 
 
-    
 
 @form_route.delete("/delete_form/{form_id}")
 def delete_form(form_id: str, current_admin: Dict[str, Any] = Depends(admin_required)):
-    from bson import ObjectId
 
     if not ObjectId.is_valid(form_id):
         raise HTTPException(status_code=400, detail="Invalid form ID")
@@ -161,3 +159,50 @@ def delete_form(form_id: str, current_admin: Dict[str, Any] = Depends(admin_requ
         raise HTTPException(status_code=404, detail="Form not found")
 
     return {"message": "Form permanently deleted", "form_id": form_id}
+
+
+@form_route.put("/edit_form/{form_id}")
+def edit_form(form_id: str, updated_data: FormUpdate, current_admin: Dict[str, Any] = Depends(admin_required)):
+    try:
+
+        # ✅ Validate form ID
+        if not ObjectId.is_valid(form_id):
+            raise HTTPException(status_code=400, detail="Invalid form ID")
+
+        form_object_id = ObjectId(form_id)
+
+        # ✅ Find the form
+        form = form_collection.find_one({"_id": form_object_id})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        # ✅ Optional (recommended): Block editing published forms
+        if form.get("status") == "published":
+            raise HTTPException(status_code=400, detail="Cannot edit a published form. Unpublish first.")
+
+        # ✅ Build update document dynamically
+        update_fields = {k: v for k, v in updated_data.dict().items() if v is not None}
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No fields provided for update")
+
+        # ✅ Add updated timestamp
+        update_fields["updated_at"] = datetime.utcnow()
+
+        # ✅ Perform update
+        result = form_collection.update_one(
+            {"_id": form_object_id},
+            {"$set": update_fields}
+        )
+
+        if result.modified_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to update form")
+
+        return {
+            "message": "Form updated successfully",
+            "form_id": form_id,
+            "updated_fields": update_fields
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
