@@ -1,1 +1,18 @@
+# Environment variables (MUST ignore - contains secrets)
 .env
+
+# Service account credentials (MUST ignore - sensitive)
+service-account-key.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+.venv/
+env/
+

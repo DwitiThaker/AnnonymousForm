@@ -1,23 +1,24 @@
 import json
+import os
 from fastapi import APIRouter, HTTPException
+from datetime import datetime
+
 from MongoDB.schemas import ResponseCreate
 from Services.responseService import save_response
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from datetime import datetime
+
+# Import from config
+from config import (
+    SPREADSHEET_ID,
+    RANGE_NAME,
+    SCOPES,
+    GOOGLE_SERVICE_ACCOUNT_JSON,
+    SERVICE_ACCOUNT_FILE
+)
 
 form_response = APIRouter()
-
-
-
-# Configuration
-SPREADSHEET_ID = "1nObbLebQpAibmDcIi74y1MTza5sjse48CM0Nok3iR24"  # Get this from the URL of your Google Sheet
-RANGE_NAME = "Sheet1!A:Z"  # Adjust based on your sheet name
-SERVICE_ACCOUNT_FILE = "service-account-key.json"  # Path to your JSON key file
-
-# Scopes required for Google Sheets API
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 
 class GoogleSheetsService:
@@ -29,11 +30,26 @@ class GoogleSheetsService:
     def initialize_service(self):
         """Initialize Google Sheets API service"""
         try:
-            self.credentials = service_account.Credentials.from_service_account_file(
-                SERVICE_ACCOUNT_FILE, 
-                scopes=SCOPES
-            )
+            # Try environment variable first (for production)
+            if GOOGLE_SERVICE_ACCOUNT_JSON:
+                service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+                self.credentials = service_account.Credentials.from_service_account_info(
+                    service_account_info,
+                    scopes=SCOPES
+                )
+                print("Using service account from environment variable")
+            # Fallback to file (for local development)
+            elif os.path.exists(SERVICE_ACCOUNT_FILE):
+                self.credentials = service_account.Credentials.from_service_account_file(
+                    SERVICE_ACCOUNT_FILE,
+                    scopes=SCOPES
+                )
+                print("Using service account from file")
+            else:
+                raise Exception("No Google credentials found. Set GOOGLE_SERVICE_ACCOUNT_JSON or provide service-account-key.json")
+            
             self.service = build('sheets', 'v4', credentials=self.credentials)
+            print("Google Sheets service initialized successfully")
         except Exception as e:
             print(f"Error initializing Google Sheets service: {e}")
             raise
@@ -53,11 +69,11 @@ class GoogleSheetsService:
             ).execute()
             return result
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            print(f"Google Sheets API error: {error}")
             raise
     
     def get_all_rows(self):
-        """Get all rows from the sheet (optional, for reading data)"""
+        """Get all rows from the sheet"""
         try:
             result = self.service.spreadsheets().values().get(
                 spreadsheetId=SPREADSHEET_ID,
@@ -65,20 +81,23 @@ class GoogleSheetsService:
             ).execute()
             return result.get('values', [])
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            print(f"Error fetching rows: {error}")
             raise
 
 
-# Initialize the service
+# Initialize the service once when the module loads
 sheets_service = GoogleSheetsService()
 
 
 @form_response.post("/submit_response")
 def submit_response(response_data: ResponseCreate):
+    """
+    Submit form response - saves to both Google Sheets and MongoDB
+    """
     try:
-        # ADD THIS DEBUG LINE
         print(f"Attempting to submit to form: {response_data.form_id}")
         
+        # Prepare data for Google Sheets
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         answers_str = json.dumps(response_data.answers)
         
@@ -88,15 +107,23 @@ def submit_response(response_data: ResponseCreate):
             answers_str
         ]
 
+        # Save to Google Sheets
         sheets_service.append_row(row_data)
+        print("Google Sheets updated successfully")
         
-        # ADD THIS DEBUG LINE
-        print("Google Sheets updated, now saving to DB...")
-        
-        return save_response(
+        # Save to MongoDB
+        print("Saving to database...")
+        result = save_response(
             response_data.form_id,
             response_data.dict()
         )
+        print("Database updated successfully")
+        
+        return result
+        
     except Exception as e:
-        print(f"Error details: {e}")  # This will show more info
+        print(f"Error details: {e}")
         raise HTTPException(status_code=500, detail=f"Error submitting form: {str(e)}")
+
+
+
