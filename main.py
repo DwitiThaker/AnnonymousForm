@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from configurations import get_form_collection, get_user_collection
+# from configurations import get_form_collection, get_user_collection
 from Routes import adminRoute, formRoute, accessCode
 from Routes import response
 

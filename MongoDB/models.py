@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List
-from configurations import google_sheet_collection
 
 
 class Form(BaseModel):
