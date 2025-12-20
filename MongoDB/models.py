@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List
+from configurations import google_sheet_collection
 
 
 class Form(BaseModel):
@@ -39,18 +40,18 @@ class User(BaseModel):
 class AccessCode(BaseModel):
     email: EmailStr
     code: str
-    limit: int = 1          # number of times this code can be used (e.g. 1 submission)
-    used_count: int = 0     # to track how many times it’s been used
+    limit: int = 1          
+    used_count: int = 0     
     is_valid: bool = True
     generated_at: datetime = datetime.utcnow()
 
 class AccessCodeBatch(BaseModel):
-    emails: List[EmailStr]        # array of all emails uploaded
-    form_id: str# optional: link to a specific form
-    generated_by: str             # admin email or id
+    emails: List[EmailStr]       
+    form_id: str
+    generated_by: str             
     form_link: Optional[str] = None
     created_at: datetime = datetime.utcnow()
-    codes: Optional[List[AccessCode]] = []  # generated codes for each email
+    codes: Optional[List[AccessCode]] = []  
 
 
 
