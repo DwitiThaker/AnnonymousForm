@@ -50,7 +50,7 @@ class AccessCodeBatch(BaseModel):
     generated_by: str             
     form_link: Optional[str] = None
     created_at: datetime = datetime.utcnow()
-    codes: Optional[List[AccessCode]] = []  
+    codes: List[AccessCode] = []
 
 
 

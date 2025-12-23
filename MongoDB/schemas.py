@@ -46,6 +46,23 @@ class AccessCodeBatchCreate(BaseModel):
     generated_by: str
     created_at: Optional[datetime] = datetime.utcnow()
 
+class BulkEmailRequest(BaseModel):
+    emails: List[EmailStr]
+    form_id: str
+    form_link: Optional[str] = None
+    generated_by: str
+    code_limit: int = 1
+
+
+class EmailStatusResponse(BaseModel):
+    success: bool
+    message: str
+    total_emails: int
+    success_count: int
+    failed_count: int
+    failed_emails: Optional[List[dict]] = []
+    batch_id: Optional[str] = None
+
 
 class ResponseCreate(BaseModel):
     form_id: str              

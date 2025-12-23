@@ -2,7 +2,7 @@
 .env
 
 # Service account credentials (MUST ignore - sensitive)
-service-account-key.json
+new-key.json
 
 # Python
 __pycache__/
