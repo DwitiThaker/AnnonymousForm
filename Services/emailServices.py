@@ -77,10 +77,6 @@ def send_bulk_emails_task(
     email_code_pairs: List[dict],
     form_link: Optional[str] = None
 ):
-    """
-    Background task to send emails to multiple recipients
-    This runs asynchronously and logs results
-    """
     success_count = 0
     failed_emails = []
     

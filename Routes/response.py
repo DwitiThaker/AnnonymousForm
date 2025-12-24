@@ -68,7 +68,7 @@ def submit_response(response_data: ResponseCreate):
 
 
 
-@form_response.post("/admin/export_to_sheets/{form_id}")
+@form_response.get("/admin/export_to_sheets/{form_id}")
 def export_form_to_sheets(form_id: str):
     try:
         responses = get_responses_by_form_id(form_id)
