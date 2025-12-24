@@ -57,6 +57,26 @@ def get_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
 
     return {"total_forms": len(forms), "forms": forms}
 
+@form_route.get("/get_form/{form_id}")
+def get_form(
+    form_id: str,
+    current_admin: Dict[str, Any] = Depends(admin_required)
+):
+    # Validate ObjectId format
+    if not ObjectId.is_valid(form_id):
+        raise HTTPException(status_code=400, detail="Invalid form_id")
+
+    # Fetch form
+    form = form_collection.find_one({"_id": ObjectId(form_id)})
+
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+
+    # Convert ObjectId to string
+    form["_id"] = str(form["_id"])
+
+    return {"form": form}
+
 
 
 
