@@ -26,6 +26,6 @@ if not _raw_sa_json:
     raise RuntimeError("GOOGLE_SERVICE_ACCOUNT_JSON is missing")
 
 GOOGLE_SERVICE_ACCOUNT_JSON = json.loads(_raw_sa_json)
-GOOGLE_SERVICE_ACCOUNT_JSON["private_key"] = (
-    GOOGLE_SERVICE_ACCOUNT_JSON["private_key"].replace("\\n", "\n")
-)
+GOOGLE_SERVICE_ACCOUNT_JSON["private_key"] = GOOGLE_SERVICE_ACCOUNT_JSON[
+    "private_key"
+].replace("\\n", "\n")

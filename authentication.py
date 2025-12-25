@@ -2,7 +2,6 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 from functools import wraps
-import logging
 from jose import jwt
 from datetime import datetime, timedelta, timezone
 

@@ -4,15 +4,10 @@ from typing import Any, Dict
 from bson import ObjectId
 import logging
 
-from fastapi.responses import RedirectResponse
-
 from authentication import *
-from MongoDB.schemas import FormCreate, FormUpdate, ResponseCreate
+from MongoDB.schemas import FormCreate, FormUpdate
 from configurations import form_collection, access_code_batch_collection
 from middleware import  admin_required
-from fastapi import BackgroundTasks
-# from Services.googleSheetsService import google_service
-from Services.responseService import save_response
 
 
 
@@ -57,10 +52,10 @@ def get_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
 
     return {"total_forms": len(forms), "forms": forms}
 
+
 @form_route.get("/get_form/{form_id}")
 def get_form(
     form_id: str,
-    current_admin: Dict[str, Any] = Depends(admin_required)
 ):
     # Validate ObjectId format
     if not ObjectId.is_valid(form_id):
@@ -215,12 +210,3 @@ def edit_form(form_id: str, updated_data: FormUpdate, current_admin: Dict[str, A
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-
-# @form_route.post("/submit_response")
-# def submit_response(response_data: ResponseCreate):
-#     return save_response(
-#         response_data.form_id,
-#         response_data.model_dump()
-#     )

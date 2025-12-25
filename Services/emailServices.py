@@ -3,7 +3,6 @@ import string
 import os
 from typing import List, Optional
 
-# SendGrid imports
 try:
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
@@ -11,11 +10,9 @@ try:
 except ImportError:
     SENDGRID_AVAILABLE = False
 
-# SMTP fallback imports
 import smtplib
 from email.message import EmailMessage
 
-# Import config
 from config import (
     SMTP_SERVER,
     SMTP_PORT,
@@ -26,10 +23,8 @@ from config import (
     SENDGRID_API_KEY
 )
 
-# Determine which service to use
 USE_SENDGRID = bool(SENDGRID_API_KEY and SENDGRID_AVAILABLE)
 
-# Log on startup
 if USE_SENDGRID:
     print(f"Email: SendGrid (Production) - Key: {SENDGRID_API_KEY[:10]}...")
 else:
@@ -72,7 +67,6 @@ Best regards,
 Form Management Team
 """
     
-    # Use SendGrid if available
     if USE_SENDGRID:
         try:
             message = Mail(
@@ -92,7 +86,6 @@ Form Management Team
             print(f"SendGrid error: {e}")
             return False
     
-    # Fallback to SMTP
     else:
         try:
             msg = EmailMessage()

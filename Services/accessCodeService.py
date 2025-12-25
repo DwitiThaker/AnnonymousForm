@@ -1,8 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
-
-# Import your MongoDB collection
 from configurations import get_access_code_batch_collection
 
 

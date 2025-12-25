@@ -12,9 +12,6 @@ from middleware import admin_required
 admin_auth_route = APIRouter()
 
 
-
-
-
 @admin_auth_route.post("/login")
 def login(login_data: Login):
     db_user = get_user_by_email(login_data.email)
@@ -47,7 +44,7 @@ def login(login_data: Login):
 
 
 @admin_auth_route.post("/register", response_model=UserOut)
-def register(user: UserCreate, current_admin: Dict[str, Any] = Depends(admin_required)):
+def register(user: UserCreate):
     existing_user = get_user_by_email(user.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
