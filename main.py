@@ -10,7 +10,7 @@ origins = [
     "http://localhost:3000",  # React dev server
     "http://localhost:5173",  # Vite dev server
     "http://localhost:8000",
-    "https://feedback-form-zeta-gray.vercel.app/"
+    "https://feedback-form-zeta-gray.vercel.app"
 ]
 
 app.add_middleware(

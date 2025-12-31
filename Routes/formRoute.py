@@ -8,6 +8,7 @@ from authentication import *
 from MongoDB.schemas import FormCreate, FormUpdate
 from configurations import form_collection, access_code_batch_collection
 from middleware import  admin_required
+from Services.accessCodeService import validate_access_code
 
 
 
@@ -52,25 +53,33 @@ def get_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
 
     return {"total_forms": len(forms), "forms": forms}
 
+from fastapi import Request
 
 @form_route.get("/get_form/{form_id}")
 def get_form(
     form_id: str,
+    request: Request
 ):
-    # Validate ObjectId format
-    if not ObjectId.is_valid(form_id):
-        raise HTTPException(status_code=400, detail="Invalid form_id")
+    email = request.headers.get("x-user-email")
+    access_code = request.headers.get("x-access-code")
 
-    # Fetch form
     form = form_collection.find_one({"_id": ObjectId(form_id)})
-
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
 
-    # Convert ObjectId to string
-    form["_id"] = str(form["_id"])
+    # Validate access
+    result = validate_access_code(email, access_code, form_id)
+    if not result["valid"]:
+        raise HTTPException(status_code=401, detail=result["message"])
 
-    return {"form": form}
+    return {
+    "form_id": form["_id"],
+    "title": form.get("title", ""),
+    "description": form.get("description", ""),
+    "questions": form.get("questions", []),
+    "status": form.get("status"),
+}
+
 
 
 
@@ -210,3 +219,25 @@ def edit_form(form_id: str, updated_data: FormUpdate, current_admin: Dict[str, A
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+from fastapi import Header
+
+@form_route.post("/verify_access_code")
+def verify_access_code(
+    form_id: str,
+    email: str = Header(None, alias="x-user-email"),
+    access_code: str = Header(None, alias="x-access-code")
+):
+
+    if not form_id or not email or not access_code:
+        raise HTTPException(status_code=400, detail="Missing email or access code")
+
+    result = validate_access_code(email, access_code, form_id)
+
+    if not result["valid"]:
+        raise HTTPException(status_code=401, detail=result["message"])
+
+    return {
+        "message": "Access code verified",
+        "success": True
+    }
