@@ -54,32 +54,69 @@ def get_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
     return {"total_forms": len(forms), "forms": forms}
 
 from fastapi import Request
+from fastapi import Request
+import logging
 
+logger = logging.getLogger(__name__)
 @form_route.get("/get_form/{form_id}")
 def get_form(
     form_id: str,
     request: Request
 ):
-    email = request.headers.get("x-user-email")
-    access_code = request.headers.get("x-access-code")
+    try:
+        logger.info(f"Fetching form: {form_id}")
 
-    form = form_collection.find_one({"_id": ObjectId(form_id)})
-    if not form:
-        raise HTTPException(status_code=404, detail="Form not found")
+        email = request.headers.get("x-user-email")
+        access_code = request.headers.get("x-access-code")
 
-    # Validate access
-    result = validate_access_code(email, access_code, form_id)
-    if not result["valid"]:
-        raise HTTPException(status_code=401, detail=result["message"])
+        logger.info(f"Headers received => Email: {email}, AccessCode: {access_code}")
 
-    return {
-    "form_id": form["_id"],
-    "title": form.get("title", ""),
-    "description": form.get("description", ""),
-    "questions": form.get("questions", []),
-    "status": form.get("status"),
-}
+        # Validate ObjectId format
+        if not ObjectId.is_valid(form_id):
+            raise HTTPException(status_code=400, detail="Invalid form_id format")
 
+        # Fetch form
+        form = form_collection.find_one({"_id": ObjectId(form_id)})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        logger.info("Form found in DB")
+
+        # Validate Access Code
+        result = validate_access_code(email, access_code, form_id)
+        if not result["valid"]:
+            logger.warning("Access code invalid or limit exceeded")
+            raise HTTPException(status_code=401, detail=result["message"])
+
+        logger.info("Access code verified successfully")
+
+        # Convert ObjectId to string
+        form["_id"] = str(form["_id"])
+
+        # Convert nested ObjectIds in questions
+        for q in form.get("questions", []):
+            if isinstance(q.get("qid"), ObjectId):
+                q["qid"] = str(q["qid"])
+            if "_id" in q and isinstance(q["_id"], ObjectId):
+                q["_id"] = str(q["_id"])
+
+        logger.info("Questions ObjectId conversion complete")
+
+        return {
+            "form_id": form["_id"],
+            "title": form.get("title", ""),
+            "description": form.get("description", ""),
+            "questions": form.get("questions", []),
+            "status": form.get("status")
+        }
+
+    except HTTPException as e:
+        logger.error(f"HTTP Exception: {e.detail}")
+        raise e
+
+    except Exception as e:
+        logger.error(f"Unexpected error in GET_FORM: {str(e)}")
+        raise HTTPException(status_code=500, detail="Server processing error")
 
 
 
