@@ -6,6 +6,9 @@ from MongoDB.models import AccessCode, AccessCodeBatch
 from MongoDB.schemas import BulkEmailRequest, EmailStatusResponse
 from Services.emailServices import generate_access_code, send_bulk_emails_task
 from Services.accessCodeService import save_access_code_batch
+from configurations import form_collection
+from bson import ObjectId
+
 
 admin_email = APIRouter()
 
@@ -32,8 +35,23 @@ async def send_access_codes_to_users(
                 detail="Cannot send to more than 1000 emails at once"
             )
         
+        if not ObjectId.is_valid(request.form_id):
+            raise HTTPException(status_code=400, detail="Invalid form_id")
+
+        form = form_collection.find_one({"_id": ObjectId(request.form_id)})
+
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        if form.get("status") != "published":
+            raise HTTPException(
+                status_code=400,
+                detail="Form is not published"
+            )
+        
         # Remove duplicate emails
         unique_emails = list(set(request.emails))
+
         if len(unique_emails) < len(request.emails):
             print(f"Removed {len(request.emails) - len(unique_emails)} duplicate emails")
         
