@@ -71,18 +71,15 @@ def get_form(
 
         logger.info(f"Headers received => Email: {email}, AccessCode: {access_code}")
 
-        # Validate ObjectId format
         if not ObjectId.is_valid(form_id):
             raise HTTPException(status_code=400, detail="Invalid form_id format")
 
-        # Fetch form
         form = form_collection.find_one({"_id": ObjectId(form_id)})
         if not form:
             raise HTTPException(status_code=404, detail="Form not found")
 
         logger.info("Form found in DB")
 
-        # Validate Access Code
         result = validate_access_code(email, access_code, form_id)
         if not result["valid"]:
             logger.warning("Access code invalid or limit exceeded")
@@ -90,10 +87,8 @@ def get_form(
 
         logger.info("Access code verified successfully")
 
-        # Convert ObjectId to string
         form["_id"] = str(form["_id"])
 
-        # Convert nested ObjectIds in questions
         for q in form.get("questions", []):
             if isinstance(q.get("qid"), ObjectId):
                 q["qid"] = str(q["qid"])

@@ -1,9 +1,11 @@
 import json
 import os
+from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 
 from MongoDB.schemas import ResponseCreate
+from configurations import form_collection
 from Services.responseService import save_response, get_responses_by_form_id
 
 from google.oauth2.service_account import Credentials
@@ -57,8 +59,8 @@ def submit_response(response_data: ResponseCreate):
         raise HTTPException(
             status_code=500, detail=f"Error submitting form response: {str(e)}"
         )
-
-
+    
+    
 @form_response.get("/admin/export_to_sheets/{form_id}")
 def export_form_to_sheets(form_id: str):
     try:
@@ -71,25 +73,41 @@ def export_form_to_sheets(form_id: str):
                 "exported_count": 0,
             }
 
+        form = form_collection.find_one({"_id": ObjectId(form_id)})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        questions = form.get("questions", [])
+        headers = ["Timestamp"] + [q["question"] for q in questions]
+
         rows = []
         for response in responses:
             timestamp = response.get("created_at", datetime.utcnow()).strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
-            answers_str = json.dumps(response.get("answers", {}))
 
-            rows.append([timestamp, form_id, answers_str, str(response.get("_id", ""))])
+            answers = response.get("answers", {})
+            row = [timestamp]
 
-        sheets_service.append_multiple_rows(rows)
+            for q in questions:
+                row.append(answers.get(q["qid"], ""))
+
+            rows.append(row)
+
+        sheet_name = f"Form_{form_id}"
+
+        sheets_service.write_fresh_sheet(sheet_name, headers, rows)
 
         return {
             "success": True,
-            "message": f"Successfully exported {len(rows)} responses to Google Sheets",
+            "message": f"Fresh export completed for {len(rows)} responses",
             "exported_count": len(rows),
             "form_id": form_id,
+            "sheet_name": sheet_name
         }
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error exporting to Google Sheets: {str(e)}"
+            status_code=500,
+            detail=f"Error exporting to Google Sheets: {str(e)}"
         )
