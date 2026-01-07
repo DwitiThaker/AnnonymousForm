@@ -3,6 +3,7 @@ import os
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
+import traceback
 
 from MongoDB.schemas import ResponseCreate
 from configurations import form_collection
@@ -20,9 +21,12 @@ form_response = APIRouter()
 class GoogleSheetsService:
     def __init__(self):
         self.credentials = Credentials.from_service_account_info(
-            GOOGLE_SERVICE_ACCOUNT_JSON, scopes=SCOPES
+            GOOGLE_SERVICE_ACCOUNT_JSON,
+            scopes=SCOPES
         )
         self.service = build("sheets", "v4", credentials=self.credentials)
+        self.spreadsheet_id = SPREADSHEET_ID
+
 
     def append_multiple_rows(self, rows: list[list[str]]):
         try:
@@ -31,7 +35,7 @@ class GoogleSheetsService:
                 self.service.spreadsheets()
                 .values()
                 .append(
-                    spreadsheetId=SPREADSHEET_ID,
+                    spreadsheetId=self.spreadsheet_id,
                     range=RANGE_NAME,
                     valueInputOption="USER_ENTERED",
                     insertDataOption="INSERT_ROWS",
@@ -41,6 +45,68 @@ class GoogleSheetsService:
             )
         except HttpError as e:
             raise RuntimeError(f"Google Sheets API error: {e}")
+
+
+    def get_all_sheet_names(self) -> list[str]:
+        spreadsheet = (
+            self.service.spreadsheets()
+            .get(spreadsheetId=self.spreadsheet_id)
+            .execute()
+        )
+        return [
+            sheet["properties"]["title"]
+            for sheet in spreadsheet.get("sheets", [])
+        ]
+
+    def ensure_sheet_exists(self, sheet_name: str):
+        existing_sheets = self.get_all_sheet_names()
+
+        if sheet_name not in existing_sheets:
+            body = {
+                "requests": [
+                    {
+                        "addSheet": {
+                            "properties": {
+                                "title": sheet_name
+                            }
+                        }
+                    }
+                ]
+            }
+            self.service.spreadsheets().batchUpdate(
+                spreadsheetId=self.spreadsheet_id,
+                body=body
+            ).execute()
+
+    def clear_sheet(self, sheet_name: str):
+        range_all = f"'{sheet_name}'!A:Z"
+        self.service.spreadsheets().values().clear(
+            spreadsheetId=self.spreadsheet_id,
+            range=range_all,
+            body={}
+        ).execute()
+
+    def write_fresh_sheet(self, sheet_name: str, headers: list, rows: list):
+        """
+        Clears the sheet and writes headers + rows fresh.
+        Used by form export to prevent duplicate data.
+        """
+        # 1. Ensure sheet exists
+        self.ensure_sheet_exists(sheet_name)
+
+        # 2. Clear old data
+        self.clear_sheet(sheet_name)
+
+        # 3. Write headers + rows
+        all_rows = [headers] + rows
+
+        self.service.spreadsheets().values().append(
+            spreadsheetId=self.spreadsheet_id,
+            range=f"'{sheet_name}'",
+            valueInputOption="RAW",
+            insertDataOption="OVERWRITE",
+            body={"values": all_rows}
+        ).execute()
 
 
 sheets_service = GoogleSheetsService()
@@ -60,7 +126,7 @@ def submit_response(response_data: ResponseCreate):
             status_code=500, detail=f"Error submitting form response: {str(e)}"
         )
     
-    
+
 @form_response.get("/admin/export_to_sheets/{form_id}")
 def export_form_to_sheets(form_id: str):
     try:
@@ -78,7 +144,7 @@ def export_form_to_sheets(form_id: str):
             raise HTTPException(status_code=404, detail="Form not found")
 
         questions = form.get("questions", [])
-        headers = ["Timestamp"] + [q["question"] for q in questions]
+        headers = ["Timestamp"] + [q["question_text"] for q in questions]
 
         rows = []
         for response in responses:
@@ -107,7 +173,12 @@ def export_form_to_sheets(form_id: str):
         }
 
     except Exception as e:
+        print("========== EXPORT ERROR ==========")
+        traceback.print_exc()
+        print("==================================")
+
         raise HTTPException(
             status_code=500,
             detail=f"Error exporting to Google Sheets: {str(e)}"
         )
+
