@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Dict
 from bson import ObjectId
 import logging
+from fastapi import Request
 
 from authentication import *
 from MongoDB.schemas import FormCreate, FormUpdate
@@ -43,21 +44,32 @@ def create_form(form_data: FormCreate, current_admin: Dict[str, Any] = Depends(a
 
 
 
-@form_route.get("/get_forms")
-def get_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
+@form_route.get("/read_forms")
+def read_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
+    try:
+        admin_email = current_admin["email"]
 
-    forms = list(form_collection.find())
+        forms = list(
+            form_collection.find(
+                {"created_by": admin_email}
+            )
+        )
 
-    for form in forms:
-        form["_id"] = str(form["_id"])
+        for form in forms:
+            form["_id"] = str(form["_id"])
 
-    return {"total_forms": len(forms), "forms": forms}
+        return {
+            "success": True,
+            "forms": forms,
+            "count": len(forms)
+        }
 
-from fastapi import Request
-from fastapi import Request
-import logging
+    except Exception as e:
+        logger.error(f"read_forms: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-logger = logging.getLogger(__name__)
+
+
 @form_route.get("/get_form/{form_id}")
 def get_form(
     form_id: str,
