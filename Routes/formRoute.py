@@ -44,7 +44,7 @@ def create_form(form_data: FormCreate, current_admin: Dict[str, Any] = Depends(a
 
 
 
-@form_route.get("/read_forms")
+@form_route.get("/get_forms")
 def read_forms(current_admin: Dict[str, Any] = Depends(admin_required)):
     try:
         admin_email = current_admin["email"]

@@ -52,8 +52,10 @@ class AccessCodeBatch(BaseModel):
     created_at: datetime = datetime.utcnow()
     codes: List[AccessCode] = []
 
-
-
-    
+class SelectableUser(BaseModel):
+    name: str
+    email: EmailStr
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

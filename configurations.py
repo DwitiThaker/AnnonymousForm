@@ -19,6 +19,9 @@ admin_collection: Collection = db["admin"]
 form_collection: Collection = db["forms"]
 response_collection: Collection = db["response"]
 access_code_batch_collection: Collection = db["code_batch"]
+selectable_users_collection: Collection = db["selectable_users"]
+
+
 
 
 def get_user_collection() -> Collection:
@@ -39,3 +42,6 @@ def get_response_collection() -> Collection:
 
 def get_access_code_batch_collection() -> Collection:
     return access_code_batch_collection
+
+def get_selectable_users_collection() -> Collection:
+    return selectable_users_collection

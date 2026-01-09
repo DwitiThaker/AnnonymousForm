@@ -74,3 +74,21 @@ class FormUpdate(BaseModel):
     description: Optional[str] = None
     fields: Optional[list] = None
 
+
+class SelectableUserCreate(BaseModel):
+    name: str
+    email: EmailStr
+
+
+class SelectableUserOut(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+    is_active: bool
+
+
+class SendToSelectedUsersRequest(BaseModel):
+    form_id: str
+    user_ids: List[str]
+    form_link: str
+    code_limit: int = 1
