@@ -8,8 +8,8 @@ from Routes.send_to_selectedusers import router as send_to_selected_users_router
 app = FastAPI()
 
 origins = [
-    "http://localhost:3000",  # React dev server
-    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  
+    "http://localhost:5173",  
     "http://localhost:8000",
     "https://feedback-form-zeta-gray.vercel.app"
 ]

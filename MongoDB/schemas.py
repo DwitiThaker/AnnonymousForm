@@ -80,6 +80,9 @@ class SelectableUserCreate(BaseModel):
     email: EmailStr
 
 
+class DeleteSelectableUsersRequest(BaseModel):
+    user_ids: List[str]
+
 class SelectableUserOut(BaseModel):
     id: str
     name: str
